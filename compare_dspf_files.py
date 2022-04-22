@@ -1,4 +1,7 @@
 import json, os, argparse
+import openpyxl
+from openpyxl.styles import  Font, PatternFill, Border, Side, Alignment, Color
+import numpy as np
 
 
 class COMPARE_DSPF():
@@ -12,14 +15,19 @@ class COMPARE_DSPF():
         self.currentOperation = None
 
         self.openFiles()
-        self.layerMapDict = self.createLayerMapDict(self.fileContentList1)
 
-        jsonOb = json.dumps(self.layerMapDict, sort_keys=True)
+        self.layerMapDict1 = self.createLayerMapDict(self.fileContentList1)
+        jsonOb = json.dumps(self.layerMapDict1, sort_keys=True)
         with open('json1.json', 'w') as wf:
             wf.writelines(jsonOb)
-        # self.layerMapDict2, rcContents2 = self.createLayerMapDict(self.fileContentList2)
 
-        
+        self.layerMapDict2 = self.createLayerMapDict(self.fileContentList1)
+        jsonOb = json.dumps(self.layerMapDict2, sort_keys=True)
+        with open('json2.json', 'w') as wf:
+            wf.writelines(jsonOb)
+
+        self.createLayerOutput()
+
     
     def openFiles(self):
         with open(self.filePath1, 'r') as rf:
@@ -82,7 +90,6 @@ class COMPARE_DSPF():
             wordLength = len(wordList)
 
             if wordLength > 3:
-
                 if wordList[0].upper().startswith('R'):
                     labelId = ''
                     rvalue = None
@@ -94,7 +101,6 @@ class COMPARE_DSPF():
                         rvalue = wordList[3]
 
                     if  wordList[-1].split("=")[0].__contains__('$lvl'):
-                        # print(wordList[-1].split("=")[-1])
                         layer = wordList[-1].split("=")[-1] 
                         labelId += layer + "_"             
                     if  wordList[-2].split("=")[0].__contains__('$lvl'):
@@ -108,6 +114,7 @@ class COMPARE_DSPF():
                         tempDict['itf'] =  ''
                         tempDict['type'] = {}
                         layerMapDict[tempDict['id']] = tempDict   
+
                     if rName in layerMapDict[labelId]['type'].keys():
                         layerMapDict[labelId]['type'][rName].append(rvalue)
                     else:
@@ -126,7 +133,6 @@ class COMPARE_DSPF():
                         layer = wordList[-1].split("=")[-1]
                         labelId +=  layer
 
-
                     if labelId not in layerMapDict.keys():
                         tempDict = {}               
                         tempDict['id'] = labelId
@@ -134,18 +140,231 @@ class COMPARE_DSPF():
                         tempDict['itf'] =  ''
                         tempDict['type'] = {}
                         layerMapDict[tempDict['id']] = tempDict
-                    if cName in layerMapDict[labelId]['type'].keys():
-                        layerMapDict[labelId]['type'][cName].append(cValue)
-                    else:
+
+                    if cName not in layerMapDict[labelId]['type'].keys():
                         layerMapDict[labelId]['type'][cName] = []
                         layerMapDict[labelId]['type'][cName].append(cValue)
+                    else:
+                        layerMapDict[labelId]['type'][cName].append(cValue)
+                        # print(cName, "\t", cValue)
+                        
 
-
+        # print_dict(layerMapDict)
         return layerMapDict
-                    
 
-    def createLayerOutput():
-        pass
+    def convertToExcelCell(self, ind):
+        colInd = ''
+        while ind > 0:
+            ind, rem =  divmod(ind-1, 26)
+            colInd = chr(65 + rem) + colInd
+        return colInd
+
+    def getCommonKey(self):
+
+        keyList = sorted(list(self.layerMapDict1.keys()))
+        self.layerMapDictMergedKey = []
+        tempList = []
+        tempDict = {}
+        for keyD in keyList:
+            if str(keyD).__contains__("_") and keyD in self.layerMapDict2.keys():
+                tempKey = int(keyD.split('_')[0])
+                if tempKey not in tempList:
+                    tempList.append(tempKey)
+                    tempDict[tempKey] = []
+                
+                if keyD not in tempDict[tempKey]:
+                    tempDict[tempKey].append(keyD)
+
+        tempList = sorted(tempList)
+
+        print("tempList : \t", tempList)
+        # print_dict(tempDict)
+        for keyD in tempList:
+            for keyL in tempDict[keyD]:
+                self.layerMapDictMergedKey.append(keyL)
+        
+    
+    def getUnit(self, val = None):
+        unitDict = {
+                '-8' : 'y',  # yocto
+                '-7' : 'z',  # zepto
+                '-6' : 'a',  # atto
+                '-5' : 'f',  # femto
+                '-4' : 'p',  # pico
+                '-3' : 'n',   # nano
+                '-2' : 'u',   # micro
+                '-1' : 'm',   # mili
+                # '-2' : 'c',   # centi
+                # '-1' : 'd',   # deci
+                '1' : 'k',    # kilo
+                '2' : 'M',    # mega
+                '3' : 'G',    # giga
+                '4' : 'T',   # tera
+                '5' : 'P',   # peta
+                '6' : 'E',   # exa
+                '7' : 'Z',   # zetta
+                '8' : 'Y',   # yotta
+        }
+        unitListKey = list(unitDict.keys())
+        if val != None:
+            val0 = str(val).strip().lower()
+            try:
+                valFlt = float(val0)
+                valFloat = np.format_float_scientific(valFlt, precision=4, exp_digits=1)
+                valFloat = str(valFloat)
+                floatVal, floatUnit = valFloat.split('e')
+                floatVal = float(floatVal)
+                floatUnit = int(floatUnit)
+                if floatUnit >= 0 and floatUnit < 3:
+                    floatFinalVal = float(floatVal) * (10**int(floatUnit))
+                    floatFinalUnit = ''
+                    floatFinalVal = round(floatFinalVal, 2)
+                    return floatFinalVal, floatFinalUnit
+                else:
+                    divs = int(floatUnit) // 3
+                    rem = int(floatUnit) % 3
+                    floatFinalUnit = unitDict[str(divs)]
+                    floatFinalVal = float(floatVal) * (10 ** (rem))
+                    floatFinalVal = round(floatFinalVal, 2)
+                    return floatFinalVal, floatFinalUnit
+            except Exception as e:
+                print(e)
+                valFloat = '0e0'
+                return '0', '-'
+        return '-'
+
+
+
+    def formatColWidth(self, tempWorkSheet, space=2):
+        colInd = 1
+        for cells in tempWorkSheet.columns:
+            maxWidth = int(max(len(str(cell.value).strip()) for cell in cells))
+            colName = self.convertToExcelCell(colInd)
+            tempWorkSheet.column_dimensions[colName].width = maxWidth + space
+            colInd += 1
+
+        return tempWorkSheet  
+    
+
+    def addFloatValues(self, valueList):
+        tempVal = float(0)
+        for val in valueList:
+            tempVal += float(val)
+        return tempVal
+
+    def insertToCell(self, outputSheet, rowNumber, cellValueStr="", algType='Default'):
+        self.valueDelimiter = "<>"
+        cellValues = cellValueStr.split(self.valueDelimiter)
+        cellStyle = self.cellStyle
+        for ind, cellVal in enumerate(cellValues):
+            colName = self.convertToExcelCell(ind+1)
+            cell = outputSheet[f"{colName}{rowNumber}"] 
+            cell.value = cellVal
+            cell.alignment = self.cellStyle[algType]['alignment']
+            cell.font = cellStyle[algType]['font']
+
+
+    def createLayerOutput(self):
+        self.getCommonKey()
+        outputWB = openpyxl.Workbook()
+        outputSheet = outputWB.create_sheet('File Comparision')
+
+        self.cellStyle = {
+            "Default" : {
+            'font': Font(name='Consolas', size=10, bold=False, italic=False, underline='none', strike=False, vertAlign=None),
+            'alignment': Alignment(horizontal='center', vertical='center', wrap_text=False, shrink_to_fit=False, indent=0)
+            },
+
+            "Title" : {
+            'font': Font(name='Consolas', size=11, bold=True, italic=False, underline='none', strike=False, vertAlign=None),
+            'alignment': Alignment(horizontal='center', vertical='center', wrap_text=False, shrink_to_fit=False, indent=0)
+            }
+        }
+        cellStyle = self.cellStyle
+
+        cell = outputSheet[f"A1"]
+        cell.value = "DSPF1"
+        cell.alignment = cellStyle['Title']['alignment']
+        cell.font = cellStyle['Title']['font']
+        cell = outputSheet[f"E1"]
+        cell.value = "DSPF2" 
+        cell.alignment = cellStyle['Title']['alignment']
+        cell.font = cellStyle['Title']['font']
+        cell = outputSheet[f"I1"]
+        cell.value = "Difference" 
+        cell.alignment = cellStyle['Title']['alignment']
+        cell.font = cellStyle['Title']['font']
+        
+        self.insertToCell(outputSheet=outputSheet, rowNumber=2, cellValueStr=f"{'Layer1'}<>{'Layer2'}<>{'Type'}<>{'Value'}<>{'Layer1'}<>{'Layer2'}<>{'Type'}<>{'Value'}<>{'Difference'}", algType='Title')
+
+        outputSheet.merge_cells("A1:D1")
+        outputSheet.merge_cells("E1:H1")
+        outputSheet.merge_cells("I1:I2")
+        
+
+        rowNumber = 3
+        print_dict(self.layerMapDictMergedKey)
+        for layer in self.layerMapDictMergedKey:
+            layer1 = layer.split("_")[0]
+            layer2 = layer.split("_")[1]
+            if layer2 == '':
+                layer2 = 0
+
+            typeDict1 = self.layerMapDict1[layer]['type']
+            typeDict2 = self.layerMapDict2[layer]['type']
+            # print(typeDict1, "\n", typeDict2, "\n\n\n")
+            self.symOhm = '\u03A9'
+            for keyRC in typeDict1.keys():
+                if keyRC in typeDict2.keys():
+                    parasiticType1 = keyRC
+                    value1, unit1 = self.getUnit(self.addFloatValues(typeDict1[parasiticType1]))
+
+                    parasiticType2 = keyRC
+                    value2, unit2 = self.getUnit(self.addFloatValues(typeDict2[parasiticType2]))
+                    difference = "N/A"
+                    difference = ((value2-value1)/value2)*100
+
+                    if keyRC.startswith("C"):
+                        value1 = f"{value1} {unit1}F"
+                        value2 = f"{value2} {unit2}F"
+                    if keyRC.startswith("R"):
+                        value1 = f"{value1} {unit1}{self.symOhm}"
+                        value2 = f"{value2} {unit2}{self.symOhm}"
+
+                else:
+                    parasiticType1 = keyRC
+                    value1, unit1 = self.getUnit(self.addFloatValues(typeDict1[parasiticType1]))
+                    if keyRC.startswith("C"):
+                        value1 = f"{value1} {unit1}F"
+                        value2 = f"{value2} {unit2}F"
+                    if keyRC.startswith("R"):
+                        value1 = f"{value1} {unit1}{self.symOhm}"
+                        value2 = f"{value2} {unit2}{self.symOhm}"
+
+                    parasiticType2 = "N/A"
+                    value2 = "N/A"
+
+                    difference = "N/A"
+                
+                valueString = f"{layer1}<>{layer2}<>{parasiticType1}<>{value1}<>{layer1}<>{layer2}<>{parasiticType2}<>{value2}<>{difference}"
+            
+                self.insertToCell(outputSheet=outputSheet, rowNumber=rowNumber, cellValueStr=valueString)
+                rowNumber += 1
+            
+
+        outputSheet = self.formatColWidth(tempWorkSheet=outputSheet, space=5)
+        
+        sheetList = outputWB.sheetnames
+        del outputWB[sheetList[0]]
+        outputXlsxDirectory = self.outputPath
+
+        if os.path.isfile(outputXlsxDirectory):
+            os.remove(outputXlsxDirectory)
+
+        outputWB.save(outputXlsxDirectory)
+        outputWB.close()
+
+
 
 
 
@@ -170,16 +389,17 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=command_format)
     parser.add_argument('dspf_1', type=str)
     parser.add_argument('dspf_2', type=str)
-    parser.add_argument('output', type=str, default=".")
+    # parser.add_argument('output', type=str, default=".")
     args = parser.parse_args()
 
     try:
         file_path_1 = args.dspf_1
         file_path_2 = args.dspf_2
-        output_path = args.output
+        # output_path = args.output
     except:
         print(f"\n\nGive Command As Follows : {command_format}")
     
+    output_path = f"{curWorkingDir}/ouput_dspf_compare.xlsx"
 
     compareDspf(file_path_1, file_path_2, output_path)
 

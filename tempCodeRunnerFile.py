@@ -1,2 +1,1 @@
-):
-                #     print("C : ", wordLength, "\t",  wordList)
+compare_dspf_class
