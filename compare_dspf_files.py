@@ -248,6 +248,9 @@ class COMPARE_DSPF():
 
     def addFloatValues(self, valueList):
         tempVal = float(0)
+        if type(valueList) == int or type(valueList) == float:
+            return valueList
+
         for val in valueList:
             tempVal += float(val)
         return tempVal
@@ -314,40 +317,89 @@ class COMPARE_DSPF():
             typeDict2 = self.layerMapDict2[layer]['type']
             # print(typeDict1, "\n", typeDict2, "\n\n\n")
             self.symOhm = '\u03A9'
+            cVal1 = float(0)
+            cVal2 = float(0)
+
+            rVal1 = float(0)
+            rVal2 = float(0)
+
+            print(f"\n\n\n{layer}")
             for keyRC in typeDict1.keys():
                 if keyRC in typeDict2.keys():
-                    parasiticType1 = keyRC
-                    value1, unit1 = self.getUnit(self.addFloatValues(typeDict1[parasiticType1]))
-
-                    parasiticType2 = keyRC
-                    value2, unit2 = self.getUnit(self.addFloatValues(typeDict2[parasiticType2]))
-                    difference = "N/A"
-                    difference = ((value2-value1)/value2)*100
-
+                    # value1, unit1 = self.getUnit(self.addFloatValues(typeDict1[parasiticType1]))
+                    value1 = self.addFloatValues(typeDict1[keyRC])
+                    value2 = self.addFloatValues(typeDict2[keyRC])
+                    
+                    # value2, unit2 = self.getUnit(self.addFloatValues(typeDict2[parasiticType2]))
+                    # difference = "N/A"
+                    # difference = ((value2-value1)/value2)*100
+                    
                     if keyRC.startswith("C"):
-                        value1 = f"{value1} {unit1}F"
-                        value2 = f"{value2} {unit2}F"
-                    if keyRC.startswith("R"):
-                        value1 = f"{value1} {unit1}{self.symOhm}"
-                        value2 = f"{value2} {unit2}{self.symOhm}"
+                        # value1 = f"{value1} {unit1}F"
+                        # value2 = f"{value2} {unit2}F"
+                        cVal1 += value1
+                        cVal2 += value2
+                        currentType = 'C'
+                    elif keyRC.startswith("R"):
+                        # value1 = f"{value1} {unit1}{self.symOhm}"
+                        # value2 = f"{value2} {unit2}{self.symOhm}"
+                        rVal1 += value1
+                        rVal2 += value2
+                        currentType = 'R'
+                    
+                    else:
+                        print("No RC")
+                    
 
-                else:
-                    parasiticType1 = keyRC
-                    value1, unit1 = self.getUnit(self.addFloatValues(typeDict1[parasiticType1]))
-                    if keyRC.startswith("C"):
-                        value1 = f"{value1} {unit1}F"
-                        value2 = f"{value2} {unit2}F"
-                    if keyRC.startswith("R"):
-                        value1 = f"{value1} {unit1}{self.symOhm}"
-                        value2 = f"{value2} {unit2}{self.symOhm}"
 
-                    parasiticType2 = "N/A"
-                    value2 = "N/A"
+                    print(f"\n{layer} - {currentType} : ", value1, value2)
+                    print("C : ", cVal1, cVal1)
+                    print("R : ", rVal1, rVal2)
+                # else:
+                #     parasiticType1 = keyRC
+                #     value1 = self.addFloatValues(typeDict1[parasiticType1])
+                #     if keyRC.startswith("C"):
+                #         # value1 = f"{value1} {unit1}F"
+                #         # value2 = f"{value2} {unit2}F"
+                #         cVal1 += value1
+                #         # cVal2 += value2
+                #     if keyRC.startswith("R"):
+                #         # value1 = f"{value1} {unit1}{self.symOhm}"
+                #         # value2 = f"{value2} {unit2}{self.symOhm}"
+                #         rVal1 += value1
+                #         # rVal2 += value2
 
-                    difference = "N/A"
-                
-                valueString = f"{layer1}<>{layer2}<>{parasiticType1}<>{value1}<>{layer1}<>{layer2}<>{parasiticType2}<>{value2}<>{difference}"
+                #     # parasiticType2 = "N/A"
+                #     # value2 = "N/A"
+
+                #     # difference = "N/A"
+
+            value1, unit1 = self.getUnit(cVal1)
+            value2, unit2 = self.getUnit(cVal2)
             
+            try:
+                cDifference = ((value2-value1)/value2)*100
+            except:
+                cDifference = "N/A"
+            cVal1 = f"{value1} {unit1}{self.symOhm}"
+            cVal2 = f"{value2} {unit2}{self.symOhm}"   
+            
+            if int(value2) != 0:
+                valueString = f"{layer1}<>{layer2}<>{'C'}<>{cVal1}<>{layer1}<>{layer2}<>{'C'}<>{cVal2}<>{cDifference}"
+                self.insertToCell(outputSheet=outputSheet, rowNumber=rowNumber, cellValueStr=valueString)
+                rowNumber += 1
+
+            value1, unit1 = self.getUnit(rVal1)
+            value2, unit2 = self.getUnit(rVal2)
+            try:
+                rDifference = ((value2-value1)/value2)*100
+            except:
+                rDifference = "N/A"
+            rVal1 = f"{value1} {unit1}{self.symOhm}"
+            rVal2 = f"{value2} {unit2}{self.symOhm}"
+            
+            if int(value2) != 0:
+                valueString = f"{layer1}<>{layer2}<>{'R'}<>{rVal1}<>{layer1}<>{layer2}<>{'R'}<>{rVal2}<>{rDifference}"
                 self.insertToCell(outputSheet=outputSheet, rowNumber=rowNumber, cellValueStr=valueString)
                 rowNumber += 1
             
