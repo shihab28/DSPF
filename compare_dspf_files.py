@@ -83,7 +83,7 @@ class COMPARE_DSPF():
         tempDict = {}
         # prevNetVal = 1
         # currentNetVal = 1 
-        print("createRCmapDict\n\n")
+        # print("createRCmapDict\n\n")
         for cont in fileContents:
             line = str(cont).strip()
             wordList = line.split() 
@@ -177,7 +177,7 @@ class COMPARE_DSPF():
 
         tempList = sorted(tempList)
 
-        print("tempList : \t", tempList)
+        # print("tempList : \t", tempList)
         # print_dict(tempDict)
         for keyD in tempList:
             for keyL in tempDict[keyD]:
@@ -306,7 +306,7 @@ class COMPARE_DSPF():
         
 
         rowNumber = 3
-        print_dict(self.layerMapDictMergedKey)
+        # print_dict(self.layerMapDictMergedKey)
         for layer in self.layerMapDictMergedKey:
             layer1 = layer.split("_")[0]
             layer2 = layer.split("_")[1]
@@ -323,7 +323,7 @@ class COMPARE_DSPF():
             rVal1 = float(0)
             rVal2 = float(0)
 
-            print(f"\n\n\n{layer}")
+            # print(f"\n\n\n{layer}")
             for keyRC in typeDict1.keys():
                 if keyRC in typeDict2.keys():
                     # value1, unit1 = self.getUnit(self.addFloatValues(typeDict1[parasiticType1]))
@@ -352,9 +352,9 @@ class COMPARE_DSPF():
                     
 
 
-                    print(f"\n{layer} - {currentType} : ", value1, value2)
-                    print("C : ", cVal1, cVal1)
-                    print("R : ", rVal1, rVal2)
+                    # print(f"\n{layer} - {currentType} : ", value1, value2)
+                    # print("C : ", cVal1, cVal1)
+                    # print("R : ", rVal1, rVal2)
                 # else:
                 #     parasiticType1 = keyRC
                 #     value1 = self.addFloatValues(typeDict1[parasiticType1])
@@ -416,6 +416,7 @@ class COMPARE_DSPF():
         outputWB.save(outputXlsxDirectory)
         outputWB.close()
 
+        print(f"Output Generated at loc :  {outputXlsxDirectory} ")
 
 
 
@@ -457,7 +458,7 @@ if __name__ == "__main__":
 
 
 
-# python -u "c:\Users\dtco-gf\Desktop\AUTOMATION_TEAM\DSPF\cboa_experiment\DSPF\22FDX\compare_dspf_files.py" "C:\Users\dtco-gf\Desktop\AUTOMATION_TEAM\DSPF\cboa_experiment\DSPF\22FDX\SC12T_INVX8_CSC20R_CBoA.nominal.dspf" "C:\Users\dtco-gf\Desktop\AUTOMATION_TEAM\DSPF\cboa_experiment\DSPF\22FDX\SC12T_INVX8_CSC20R.nominal.dspf" "."
+# python -u "compare_dspf_files.py" "SC12T_INVX8_CSC20R_CBoA.nominal.dspf" "SC12T_INVX8_CSC20R.nominal.dspf" 
 
 
 

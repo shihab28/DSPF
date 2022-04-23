@@ -1,1 +1,1 @@
-python -u "C:\Users\dtco-gf\Desktop\AUTOMATION_TEAM\DSPF\compare_dspf_files.py" "C:\Users\dtco-gf\Desktop\AUTOMATION_TEAM\DSPF\SC12T_INVX8_CSC20R_CBoA.nominal.dspf" "C:\Users\dtco-gf\Desktop\AUTOMATION_TEAM\DSPF\SC12T_INVX8_CSC20R.nominal.dspf" 
+python -u "compare_dspf_files.py" "SC12T_INVX8_CSC20R_CBoA.nominal.dspf" "SC12T_INVX8_CSC20R.nominal.dspf" 
